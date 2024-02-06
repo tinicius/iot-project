@@ -1,0 +1,84 @@
+version: '3'
+
+networks:
+  my-net:
+    driver: bridge
+
+services:
+  emqx:
+    image: emqx/emqx:5.3
+    container_name: emqx
+    environment:
+      - EMQX_NAME=emqx
+      - EMQX_HOST=node1.emqx
+      - EMQX_NODE__DIST_LISTEN_MIN=6369
+      - EMQX_NODE__DIST_LISTEN_MAX=6379
+      - EMQX_LISTENER__TCP__EXTERNAL=1883
+      - EMQX_LOADED_PLUGINS=emqx_recon,emqx_retainer,emqx_management,emqx_auth_username
+    ports:
+      - 1883:1883
+      - 8883:8883
+      - 8083:8083
+      - 18083:18083
+    networks:
+      - my-net
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - 15672:15672 # Dashboard web
+      - 5672:5672 # broker port
+      - 15692:15692 
+    networks:
+      - my-net
+    healthcheck:
+        test: rabbitmq-diagnostics -q ping
+        interval: 30s
+        timeout: 10s
+        retries: 5
+  
+  sensor-simulator:
+    container_name: sensor-simulator
+    image: sensor-simulator:latest
+    environment:
+      - TEMPERATURE_INTERVAL=2000
+      - HUMIDITY_INTERVAL=5000
+      - HEALTHY_INTERVAL=10000
+      - MQTT_USER=admin
+      - MQTT_PASSWORD=admin
+      - MQTT_HOST=emqx
+      - MQTT_PROTOCOL=tcp
+      - MQTT_PORT=1883
+      - MQTT_CLIENT_ID=sensor-simulator_id
+    networks:
+      - my-net
+    depends_on:
+      - emqx
+
+  rmq-bridge:
+    container_name: rmq-bridge
+    image: rmq-bridge:latest
+    environment:
+      - MQTT_USER=admin
+      - MQTT_PASSWORD=admin
+      - MQTT_HOST=emqx
+      - MQTT_PROTOCOL=tcp
+      - MQTT_PORT=1883
+      - MQTT_CLIENT_ID=rmq_bridge_id
+      - RABBITMQ_PROTOCOL=amqp
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    networks:
+      - my-net
+    depends_on:
+      emqx:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+        restart: true

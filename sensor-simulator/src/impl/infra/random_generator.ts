@@ -2,7 +2,7 @@ import { IGenerator } from "../../interfaces/infra/generator";
 
 export class RandomGenerator implements IGenerator {
 
-    constructor(private min, private max) {
+    constructor(private min: number, private max: number) {
 
     }
 
