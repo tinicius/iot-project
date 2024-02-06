@@ -1,5 +1,7 @@
-import { AlgorithmData } from "../../entities/algorithm_data";
+import { AlgorithmData } from '../../entities/algorithm_data';
+import { HealthyData } from '../../entities/healthy_data';
 
 export interface IMessaging {
-    publish(data: AlgorithmData): void
+    publishData(topic: string, data: AlgorithmData): void;
+    publishHealthy(topic: string, data: HealthyData): void;
 }

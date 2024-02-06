@@ -1,6 +1,8 @@
 import { IGenerator } from "../infra/generator";
+import { IMessaging } from "../infra/messaging";
 
 export interface IHealthy {
     batteryGenerator: IGenerator;
-    publish(): void;
+    messaging: IMessaging;
+    send(): void;
 }

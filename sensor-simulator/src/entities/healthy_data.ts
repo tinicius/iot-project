@@ -1,5 +1,6 @@
 export interface HealthyData {
-    batteryVoltage: number,
-    time: number
-    services: string[]
+    device: string;
+    batteryVoltage: number;
+    time: number;
+    services: string[];
 }
