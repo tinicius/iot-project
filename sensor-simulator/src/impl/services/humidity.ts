@@ -2,7 +2,6 @@ import { AlgorithmData } from '../../entities/algorithm_data';
 import { IGenerator } from '../../interfaces/infra/generator';
 import { IMessaging } from '../../interfaces/infra/messaging';
 import { IAlgorithm } from '../../interfaces/services/algorithm';
-import * as os from 'os';
 
 export class HumidityService implements IAlgorithm {
     generator: IGenerator;
@@ -15,16 +14,27 @@ export class HumidityService implements IAlgorithm {
 
     send(): void {
         const value = this.generator.generate();
+        const device = this.getDevice();
 
         const data: AlgorithmData = {
             value,
             time: Date.now(),
-            device: os.userInfo().username,
+            device,
             type: 'HUMIDITY',
         };
 
         const topic = `IoTProject/data/${data.device}/${data.type}`;
 
         this.messaging.publishData(topic, data);
+    }
+
+    private getDevice(): string {
+        const deviceName = process.env.DEVICE;
+
+        if (!deviceName) {
+            throw Error('Invalid env device name!');
+        }
+
+        return deviceName;
     }
 }
