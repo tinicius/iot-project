@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package server;
+
+message ListIoTDataRequest {}
+
+message IoTData {
+  string device = 1;
+  string typ = 3;
+  string value = 2;
+  string time = 4;
+}
+
+message ListIoTDataResponse {
+  repeated IoTData data = 1;
+}
+
+message SensorHealthy {
+    string device = 1;
+    string battery = 2;
+    string time = 3;
+    string servives = 4;
+}
+
+message ListSensorHealthyRequest {}
+
+message ListSensorHealthyResponse {
+    repeated SensorHealthy data = 1;
+}
+
+service IoTDataServices {
+  rpc ListIoTData (ListIoTDataRequest) returns (ListIoTDataResponse) {}
+}
+
+service IoTHealthyService {
+    rpc ListSensorHealthy (ListSensorHealthyRequest) returns (ListSensorHealthyResponse) {}
+}
