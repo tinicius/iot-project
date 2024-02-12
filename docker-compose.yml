@@ -45,9 +45,10 @@ services:
     container_name: sensor-simulator
     image: sensor-simulator:latest
     environment:
-      - TEMPERATURE_INTERVAL=2000
-      - HUMIDITY_INTERVAL=5000
-      - HEALTHY_INTERVAL=10000
+      - DEVICE=local
+      - TEMPERATURE_INTERVAL=10000
+      - HUMIDITY_INTERVAL=10000
+      - HEALTHY_INTERVAL=20000
       - MQTT_USER=admin
       - MQTT_PASSWORD=admin
       - MQTT_HOST=emqx
@@ -59,9 +60,9 @@ services:
     depends_on:
       - emqx
 
-  rmq-bridge:
-    container_name: rmq-bridge
-    image: rmq-bridge:latest
+  bridge:
+    container_name: bridge
+    image: bridge:latest
     environment:
       - MQTT_USER=admin
       - MQTT_PASSWORD=admin

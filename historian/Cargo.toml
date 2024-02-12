@@ -1,5 +1,5 @@
 [package]
-name = "bridge"
+name = "historian"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,12 +7,13 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1.35.1", features = ["full"] }
-async-trait = { version = "0.1.77" }
 dotenvy = { version = "0.15.7" }
 env_logger = { version = "0.11.0" }
 log = { version = "0.4.20" }
+futures-util = { version = "0.3.30" }
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = { version = "1.0.111" }
-futures-util = { version = "0.3.30" }
-paho-mqtt = { version = "0.12.3" }
 lapin = { version = "2.3.1" }
+async-trait = { version = "0.1.77" }
+aws-config = { version = "1.1.4", features = ["behavior-version-latest"] }
+aws-sdk-timestreamwrite = "1.12.0"

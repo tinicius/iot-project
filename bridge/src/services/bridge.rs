@@ -14,7 +14,20 @@ pub trait SourceMessaging {
 
 #[async_trait]
 pub trait TargetMessaging {
-    async fn publish(&self);
+    async fn create_exchange(&self, exchange_name: String) -> Result<(), ()>;
+    async fn create_queue(&self, queue_name: String) -> Result<(), ()>;
+    async fn bind_queue(
+        &self,
+        exchange_name: String,
+        queue_name: String,
+        rounting_key: String,
+    ) -> Result<(), ()>;
+    async fn publish(
+        &self,
+        data: &[u8],
+        exchange_name: String,
+        rounting_key: String,
+    ) -> Result<(), ()>;
 }
 
 pub struct BridgeServiceImpl {

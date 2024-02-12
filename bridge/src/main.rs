@@ -1,9 +1,11 @@
 use infra::{
     source_messaging::{MQQTConnection, MQTTMessaging},
-    target_messaging::{self, RabbitMQMessaging},
+    target_messaging::RabbitMQMessaging,
 };
 use log::info;
 use services::bridge::{BridgeService, BridgeServiceImpl};
+
+use crate::{infra::target_messaging::RabbitMQConnection, services::data_convert::DataConvert};
 mod infra;
 mod services;
 
@@ -14,13 +16,22 @@ async fn main() {
 
     info!("Starting application...");
 
-    let target_messaging = RabbitMQMessaging::new();
+    let (connection, channel) = RabbitMQConnection::new()
+        .connect()
+        .await
+        .expect("Erro on create rabbitmq connection!");
+
+    info!("{:?}", channel.status());
+
+    let target_messaging = RabbitMQMessaging::new(channel, connection);
 
     let client = MQQTConnection::new()
         .create_client("client_id".to_string())
         .expect("Erro on create mqtt client!");
 
-    let source_messaging = MQTTMessaging::new(client, Box::new(target_messaging));
+    let data_convert = DataConvert::new();
+
+    let source_messaging = MQTTMessaging::new(client, Box::new(target_messaging), data_convert);
 
     let mut service = BridgeServiceImpl::new(Box::new(source_messaging));
 

@@ -4,7 +4,10 @@ use log::{error, info};
 use paho_mqtt::{AsyncClient, ConnectOptionsBuilder, CreateOptionsBuilder};
 use std::env::var;
 
-use crate::services::bridge::{SourceMessaging, TargetMessaging};
+use crate::services::{
+    bridge::{SourceMessaging, TargetMessaging},
+    data_convert::DataConvert,
+};
 
 struct MQTTConfigs {
     user: String,
@@ -15,17 +18,20 @@ pub struct MQTTMessaging {
     subscribes: Vec<(String, u8)>,
     client: AsyncClient,
     target_messaging: Box<dyn TargetMessaging + Send + Sync>,
+    data_convert: DataConvert,
 }
 
 impl MQTTMessaging {
     pub fn new(
         client: AsyncClient,
         target_messaging: Box<dyn TargetMessaging + Send + Sync>,
+        data_convert: DataConvert,
     ) -> Self {
         return MQTTMessaging {
             subscribes: vec![],
             client,
             target_messaging,
+            data_convert,
         };
     }
 
@@ -76,6 +82,39 @@ impl SourceMessaging for MQTTMessaging {
 
         self.subscribe_topics();
 
+        self.target_messaging
+            .create_exchange("iot".to_string())
+            .await
+            .expect("Error on create exchange!");
+
+        self.target_messaging
+            .create_queue("data".to_string())
+            .await
+            .expect("Error on create data queue!");
+
+        self.target_messaging
+            .create_queue("healthy".to_string())
+            .await
+            .expect("Error on create healthy queue!");
+
+        self.target_messaging
+            .bind_queue(
+                "iot".to_string(),
+                "data".to_string(),
+                "data_key".to_string(),
+            )
+            .await
+            .expect("Error on bind data queue!");
+
+        self.target_messaging
+            .bind_queue(
+                "iot".to_string(),
+                "healthy".to_string(),
+                "healthy_key".to_string(),
+            )
+            .await
+            .expect("Error on bind healthy queue!");
+
         let mut stream = self.client.get_stream(2048);
 
         while let Some(opt_infos) = stream.next().await {
@@ -86,7 +125,38 @@ impl SourceMessaging for MQTTMessaging {
             info!("Message receive!");
             info!("{:?}", message.topic().to_string());
 
-            self.target_messaging.publish().await;
+            if message.topic().contains("healthy") {
+                let data = self
+                    .data_convert
+                    .get_serialized_healthy_data(message.payload(), message.topic().to_string())
+                    .expect("Error on serialize healthy data!");
+
+                let exchange = String::from("iot");
+                let rounting_key = String::from("healthy_key");
+
+                self.target_messaging
+                    .publish(&data, exchange, rounting_key)
+                    .await
+                    .expect("Error on publish message!");
+            }
+
+            if message.topic().contains("data") {
+                let data = self
+                    .data_convert
+                    .get_serialized_transmit_algorithm_data(
+                        message.payload(),
+                        message.topic().to_string(),
+                    )
+                    .expect("Error on serialize transmit data!");
+
+                let exchange = String::from("iot");
+                let rounting_key = String::from("data_key");
+
+                self.target_messaging
+                    .publish(&data, exchange, rounting_key)
+                    .await
+                    .expect("Error on publish message!");
+            }
         }
 
         Ok(())
