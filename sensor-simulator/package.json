@@ -9,6 +9,7 @@
     "start:prod": "tsc"
   },
   "devDependencies": {
+    "@types/config": "^3.3.3",
     "@types/mqtt": "^2.5.0",
     "@typescript-eslint/eslint-plugin": "^6.4.0",
     "eslint": "^8.0.1",
@@ -22,6 +23,7 @@
     "typescript": "*"
   },
   "dependencies": {
+    "config": "^3.3.11",
     "dotenv": "^16.4.1",
     "mqtt": "^5.3.5",
     "pino": "^8.18.0"

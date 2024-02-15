@@ -1,3 +1,3 @@
 export interface IGenerator {
-    generate(): number
+    generate(): number;
 }

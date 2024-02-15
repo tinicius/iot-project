@@ -1,9 +1,9 @@
-import { MQTTMessaging } from './impl/infra/mqtt_messaging';
-import { RandomGenerator } from './impl/infra/random_generator';
-import { HealthyService } from './impl/services/healthy';
-import { HumidityService } from './impl/services/humidity';
-import { TemperatureService } from './impl/services/temperature';
 import dotenv from 'dotenv';
+import { MQTTMessaging } from './infra/impl/mqtt_messaging';
+import { RandomGenerator } from './infra/impl/random_generator';
+import { TemperatureService } from './services/impl/temperature_service';
+import { HumidityService } from './services/impl/humidity_service';
+import { StatusService } from './services/impl/status';
 
 (() => {
     dotenv.config({
@@ -21,28 +21,33 @@ import dotenv from 'dotenv';
     const humidityGenerator = new RandomGenerator(0, 1);
     const humidityService = new HumidityService(humidityGenerator, messaging);
 
-    const healthyGenerator = new RandomGenerator(0, 5);
-    const healthyService = new HealthyService(healthyGenerator, messaging);
+    const batteryVoltageGenerator = new RandomGenerator(0, 5);
+    const signalGenerator = new RandomGenerator(0, 100);
+    const statusService = new StatusService(
+        batteryVoltageGenerator,
+        signalGenerator,
+        messaging
+    );
 
     const {
         temperatureTimeInterval,
         humidityTimeInterval,
-        healthyTimeInterval,
+        statusTimeInterval,
     } = getTimeInterval();
 
     setInterval(() => temperatureService.send(), temperatureTimeInterval);
     setInterval(() => humidityService.send(), humidityTimeInterval);
-    setInterval(() => healthyService.send(), healthyTimeInterval);
+    setInterval(() => statusService.send(), statusTimeInterval);
 })();
 
 function getTimeInterval(): {
     temperatureTimeInterval: number;
     humidityTimeInterval: number;
-    healthyTimeInterval: number;
+    statusTimeInterval: number;
 } {
     const temperatureInterval = process.env.TEMPERATURE_INTERVAL;
     const humidityInterval = process.env.HUMIDITY_INTERVAL;
-    const healthyInterval = process.env.HEALTHY_INTERVAL;
+    const statusInterval = process.env.STATUS_INTERVAL;
 
     const temperatureTimeInterval = temperatureInterval
         ? Number(temperatureInterval)
@@ -52,11 +57,11 @@ function getTimeInterval(): {
         ? Number(humidityInterval)
         : 0;
 
-    const healthyTimeInterval = healthyInterval ? Number(healthyInterval) : 0;
+    const statusTimeInterval = statusInterval ? Number(statusInterval) : 0;
 
     return {
         temperatureTimeInterval,
         humidityTimeInterval,
-        healthyTimeInterval,
+        statusTimeInterval,
     };
 }

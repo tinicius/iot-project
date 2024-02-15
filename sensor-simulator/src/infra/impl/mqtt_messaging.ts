@@ -1,8 +1,9 @@
 import mqtt, { MqttClient } from 'mqtt';
-import { AlgorithmData } from '../../entities/algorithm_data';
-import { IMessaging } from '../../interfaces/infra/messaging';
+import { Service } from '../../entities/service';
+import { Status } from '../../entities/status';
+import { IMessaging } from '../messaging';
+import config from 'config';
 import { logger } from '../../utils/logger';
-import { HealthyData } from '../../entities/healthy_data';
 
 interface MQTTConfigs {
     user: string;
@@ -20,7 +21,16 @@ export class MQTTMessaging implements IMessaging {
         this.connect();
     }
 
-    publishData(topic: string, data: AlgorithmData): void {
+    publishService(data: Service): void {
+        const prefix = this.getMqttPrefix();
+
+        if (!prefix) {
+            logger.error('Invalid MQTT prefix!');
+            return;
+        }
+
+        const topic = `${prefix}/services/${data.device}/${data.type}`;
+
         this.client.publish(
             topic,
             JSON.stringify({
@@ -30,13 +40,22 @@ export class MQTTMessaging implements IMessaging {
         );
     }
 
-    publishHealthy(topic: string, data: HealthyData): void {
+    publishStatus(data: Status): void {
+        const prefix = this.getMqttPrefix();
+
+        if (!prefix) {
+            logger.error('Invalid MQTT prefix!');
+            return;
+        }
+
+        const topic = `${prefix}/status/${data.device}`;
+
         this.client.publish(
             topic,
             JSON.stringify({
-                batteryVoltage: data.batteryVoltage,
                 time: data.time,
-                service: data.services,
+                batteryVoltage: data.batteryVoltage,
+                signal: data.signal,
             })
         );
     }
@@ -52,11 +71,11 @@ export class MQTTMessaging implements IMessaging {
                 password,
             });
         } catch (error) {
-            logger.error((error as Error).message);
-            throw error;
+            logger.error('Error on connect in MQTT!');
+            return;
         }
 
-        logger.info(`Connecting in: ${protocol}://${host}`);
+        logger.info(`Connected in: ${protocol}://${host}`);
     }
 
     private envs(): MQTTConfigs {
@@ -76,5 +95,10 @@ export class MQTTMessaging implements IMessaging {
         }
 
         return { user, password, protocol, host, port: Number(port), clientId };
+    }
+
+    private getMqttPrefix(): string | null {
+        if (!config.has('MQTT.prefix')) return null;
+        return config.get('MQTT.prefix');
     }
 }
