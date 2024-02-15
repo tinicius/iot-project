@@ -1,5 +1,10 @@
 {
     "MQTT": {
         "prefix": "IoTProject"
+    },
+    "INTERVAL": {
+        "TEMPERATURE": 10000,
+        "HUMIDITY": 10000,
+        "STATUS": 15000
     }
 }

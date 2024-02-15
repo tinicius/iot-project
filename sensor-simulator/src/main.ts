@@ -1,9 +1,11 @@
 import dotenv from 'dotenv';
+import config from 'config';
 import { MQTTMessaging } from './infra/impl/mqtt_messaging';
 import { RandomGenerator } from './infra/impl/random_generator';
 import { TemperatureService } from './services/impl/temperature_service';
 import { HumidityService } from './services/impl/humidity_service';
 import { StatusService } from './services/impl/status';
+import { logger } from './utils/logger';
 
 (() => {
     dotenv.config({
@@ -45,23 +47,23 @@ function getTimeInterval(): {
     humidityTimeInterval: number;
     statusTimeInterval: number;
 } {
-    const temperatureInterval = process.env.TEMPERATURE_INTERVAL;
-    const humidityInterval = process.env.HUMIDITY_INTERVAL;
-    const statusInterval = process.env.STATUS_INTERVAL;
+    if (
+        !config.has('INTERVAL.TEMPERATURE') ||
+        !config.has('INTERVAL.HUMIDITY') ||
+        !config.has('INTERVAL.STATUS')
+    ) {
+        logger.error('Invalid interval!');
 
-    const temperatureTimeInterval = temperatureInterval
-        ? Number(temperatureInterval)
-        : 0;
-
-    const humidityTimeInterval = humidityInterval
-        ? Number(humidityInterval)
-        : 0;
-
-    const statusTimeInterval = statusInterval ? Number(statusInterval) : 0;
+        return {
+            humidityTimeInterval: 0,
+            statusTimeInterval: 0,
+            temperatureTimeInterval: 0,
+        };
+    }
 
     return {
-        temperatureTimeInterval,
-        humidityTimeInterval,
-        statusTimeInterval,
+        temperatureTimeInterval: Number(config.get('INTERVAL.TEMPERATURE')),
+        humidityTimeInterval: Number(config.get('INTERVAL.HUMIDITY')),
+        statusTimeInterval: Number(config.get('INTERVAL.STATUS')),
     };
 }
