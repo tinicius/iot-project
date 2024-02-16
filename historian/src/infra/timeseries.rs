@@ -51,21 +51,13 @@ impl Timeseries {
             return Err(());
         };
 
-        let Ok(value) = self.create_measure(
-            String::from("value"),
-            MeasureValueType::Double,
-            data.value.to_string(),
-        ) else {
-            return Err(());
-        };
-
         Ok(Record::builder()
             .set_time(Some(data.time.to_string()))
             .set_time_unit(Some(TimeUnit::Milliseconds))
             .set_measure_name(Some("value".to_string()))
             .set_dimensions(Some(vec![device, typ]))
-            .set_measure_values(Some(vec![value]))
-            .set_measure_value_type(Some(MeasureValueType::Multi))
+            .set_measure_value(Some(data.value.to_string()))
+            .set_measure_value_type(Some(MeasureValueType::Double))
             .build())
     }
 

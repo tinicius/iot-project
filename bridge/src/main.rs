@@ -8,6 +8,7 @@ use services::bridge::{BridgeService, BridgeServiceImpl};
 use crate::{infra::target_messaging::RabbitMQConnection, services::data_convert::DataConvert};
 mod infra;
 mod services;
+mod services_;
 
 #[tokio::main]
 async fn main() {

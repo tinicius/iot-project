@@ -1,11 +1,11 @@
-use log::{error, info};
+use log::error;
 use tonic::Status;
 
 use crate::{
     infra::timeseries::Timeseries,
     server::{
-        io_t_data_services_server::IoTDataServices, IoTData, ListIoTDataRequest,
-        ListIoTDataResponse,
+        io_t_data_services_server::IoTDataServices, ListAllIoTDataRequest,
+        ListIntervalIoTDataRequest, ListIoTDataResponse,
     },
 };
 
@@ -21,22 +21,29 @@ impl IoTDataServicesImpl {
 
 #[tonic::async_trait]
 impl IoTDataServices for IoTDataServicesImpl {
-    async fn list_io_t_data(
+    async fn list_all_io_t_data(
         &self,
-        _req: tonic::Request<ListIoTDataRequest>,
+        _req: tonic::Request<ListAllIoTDataRequest>,
     ) -> Result<tonic::Response<ListIoTDataResponse>, tonic::Status> {
         let Ok(result) = self.client.get_all_iot_data().await else {
             error!("Erro on get all iot data!");
             return Err(Status::new(tonic::Code::Internal, "Internal error!"));
         };
 
-        info!("{:?}", result);
+        Ok(tonic::Response::new(ListIoTDataResponse { data: result }))
+    }
 
-        // info!("{:?}", result.column_info());
-        // info!("{:?}", result.rows.last());
+    async fn list_interval_iot_data(
+        &self,
+        req: tonic::Request<ListIntervalIoTDataRequest>,
+    ) -> Result<tonic::Response<ListIoTDataResponse>, tonic::Status> {
+        req.into_inner().device;
+
+        let Ok(result) = self.client.get_all_iot_data().await else {
+            error!("Erro on get all iot data!");
+            return Err(Status::new(tonic::Code::Internal, "Internal error!"));
+        };
 
         Ok(tonic::Response::new(ListIoTDataResponse { data: result }))
-
-        // Ok(tonic::Response::new(ListIoTDataResponse { data: vec![] }))
     }
 }

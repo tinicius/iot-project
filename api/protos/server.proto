@@ -2,17 +2,11 @@ syntax = "proto3";
 
 package server;
 
-message ListIoTDataRequest {}
-
 message IoTData {
   string device = 1;
-  string typ = 3;
+  string type = 3;
   string value = 2;
   string time = 4;
-}
-
-message ListIoTDataResponse {
-  repeated IoTData data = 1;
 }
 
 message SensorHealthy {
@@ -28,8 +22,19 @@ message ListSensorHealthyResponse {
     repeated SensorHealthy data = 1;
 }
 
+message ListAllIoTDataRequest {}
+
+message ListIntervalIoTDataRequest {
+  string device = 1;
+}
+
+message ListIoTDataResponse {
+  repeated IoTData data = 1;
+}
+
 service IoTDataServices {
-  rpc ListIoTData (ListIoTDataRequest) returns (ListIoTDataResponse) {}
+  rpc ListAllIoTData (ListAllIoTDataRequest) returns (ListIoTDataResponse) {}
+  rpc ListIntervalIotData (ListIntervalIoTDataRequest) returns (ListIoTDataResponse) {}
 }
 
 service IoTHealthyService {

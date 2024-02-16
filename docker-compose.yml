@@ -30,8 +30,8 @@ services:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
     ports:
-      - 15672:15672 # Dashboard web
-      - 5672:5672 # broker port
+      - 15672:15672 
+      - 5672:5672
       - 15692:15692 
     networks:
       - my-net
@@ -46,9 +46,6 @@ services:
     image: sensor-simulator:latest
     environment:
       - DEVICE=local
-      - TEMPERATURE_INTERVAL=10000
-      - HUMIDITY_INTERVAL=10000
-      - HEALTHY_INTERVAL=20000
       - MQTT_USER=admin
       - MQTT_PASSWORD=admin
       - MQTT_HOST=emqx
@@ -59,6 +56,9 @@ services:
       - my-net
     depends_on:
       - emqx
+    build:
+      context: ./sensor-simulator
+      dockerfile: Dockerfile
 
   bridge:
     container_name: bridge
@@ -83,3 +83,44 @@ services:
       rabbitmq:
         condition: service_healthy
         restart: true
+    build:
+      context: ./bridge
+      dockerfile: Dockerfile
+  
+  historian:
+    container_name: historian
+    image: historian:latest
+    environment:
+      - RUST_LOG=info
+      - RABBITMQ_PROTOCOL=amqp
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    networks:
+      - my-net
+    depends_on:
+      emqx:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+        restart: true
+    build:
+      context: ./historian
+      dockerfile: Dockerfile
+
+  api:
+    container_name: api
+    image: api:latest
+    # environment:
+    networks:
+      - my-net
+    depends_on:
+      emqx:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+        restart: true
+    build:
+      context: ./api
+      dockerfile: Dockerfile

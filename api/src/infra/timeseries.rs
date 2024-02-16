@@ -1,5 +1,6 @@
+use std::fmt::format;
+
 use aws_sdk_timestreamquery::{
-    operation::query::QueryOutput,
     types::{ColumnInfo, Row},
     Client,
 };
@@ -17,7 +18,7 @@ impl Timeseries {
     }
 
     pub async fn get_all_iot_data(&self) -> Result<Vec<IoTData>, ()> {
-        let query = String::from("select * from \"iot-database\".data limit 1");
+        let query = String::from("select * from \"iot-database\".data");
 
         match self
             .client
@@ -31,7 +32,35 @@ impl Timeseries {
                     info!("{:?}", data);
                     Ok(data)
                 }
-                Err(err) => Err(()),
+                Err(_) => Err(()),
+            },
+            Err(err) => {
+                error!("{}", err);
+                Err(())
+            }
+        }
+    }
+
+    pub async fn get_iot_data_in_interval(
+        &self,
+        start_date_ms: u64,
+        end_date_ms: u64,
+    ) -> Result<Vec<IoTData>, ()> {
+        let query = format!("select * from \"iot-database\".data where time >= ago");
+
+        match self
+            .client
+            .query()
+            .set_query_string(Some(query))
+            .send()
+            .await
+        {
+            Ok(result) => match self.process_iot_data(result.column_info(), result.rows()) {
+                Ok(data) => {
+                    info!("{:?}", data);
+                    Ok(data)
+                }
+                Err(_) => Err(()),
             },
             Err(err) => {
                 error!("{}", err);
@@ -74,7 +103,7 @@ impl Timeseries {
                         }
                     }
 
-                    if info == "value" {
+                    if info == "measure_value::double" {
                         if let Some(scalar_value) = &row.data[index].scalar_value {
                             data_value = scalar_value.clone()
                         }
@@ -90,7 +119,7 @@ impl Timeseries {
 
             data.push(IoTData {
                 device: data_device,
-                typ: data_type,
+                r#type: data_type,
                 value: data_value,
                 time: data_time,
             })
