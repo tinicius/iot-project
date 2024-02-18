@@ -46,9 +46,12 @@ impl RabbitMQMessaging {
 
         self.create_queue("TEMP").await?;
         self.create_queue("HUMIDITY").await?;
+        self.create_queue("STATUS").await?;
 
         self.bind_queue("IOT_PROJECT", "TEMP", "TEMP_KEY").await?;
         self.bind_queue("IOT_PROJECT", "HUMIDITY", "HUMIDITY_KEY")
+            .await?;
+        self.bind_queue("IOT_PROJECT", "STATUS", "STATUS_KEY")
             .await?;
 
         Ok(())
@@ -74,7 +77,7 @@ impl RabbitMQMessaging {
         {
             Ok(_) => Ok(()),
             Err(e) => {
-                error!("->>{}", e);
+                error!("{}", e);
                 Err(())
             }
         }
@@ -82,11 +85,11 @@ impl RabbitMQMessaging {
 
     async fn create_exchange(&self, exchange_name: &str) -> Result<(), ()> {
         let options = ExchangeDeclareOptions {
-            passive: true,
-            durable: true,
-            auto_delete: true,
-            internal: true,
-            nowait: true,
+            passive: false,
+            durable: false,
+            auto_delete: false,
+            internal: false,
+            nowait: false,
         };
 
         let arguments = FieldTable::default();
@@ -97,17 +100,20 @@ impl RabbitMQMessaging {
             .await
         {
             Ok(_) => Ok(()),
-            Err(_) => Err(()),
+            Err(e) => {
+                error!("{}", e);
+                Err(())
+            }
         }
     }
 
     async fn create_queue(&self, queue_name: &str) -> Result<(), ()> {
         let options = QueueDeclareOptions {
-            passive: true,
-            durable: true,
-            exclusive: true,
-            auto_delete: true,
-            nowait: true,
+            passive: false,
+            durable: false,
+            exclusive: false,
+            auto_delete: false,
+            nowait: false,
         };
 
         let arguments = FieldTable::default();
@@ -118,7 +124,10 @@ impl RabbitMQMessaging {
             .await
         {
             Ok(_) => Ok(()),
-            Err(_) => Err(()),
+            Err(e) => {
+                error!("{}", e);
+                Err(())
+            }
         }
     }
 
@@ -128,7 +137,7 @@ impl RabbitMQMessaging {
         queue_name: &str,
         routing_key: &str,
     ) -> Result<(), ()> {
-        let options = QueueBindOptions { nowait: true };
+        let options = QueueBindOptions { nowait: false };
 
         let arguments = FieldTable::default();
 
@@ -138,7 +147,10 @@ impl RabbitMQMessaging {
             .await
         {
             Ok(_) => Ok(()),
-            Err(_) => Err(()),
+            Err(e) => {
+                error!("{}", e);
+                Err(())
+            }
         }
     }
 }
