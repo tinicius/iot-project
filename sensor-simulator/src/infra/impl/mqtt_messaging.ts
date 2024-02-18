@@ -2,7 +2,6 @@ import mqtt, { MqttClient } from 'mqtt';
 import { Service } from '../../entities/service';
 import { Status } from '../../entities/status';
 import { IMessaging } from '../messaging';
-import config from 'config';
 import { logger } from '../../utils/logger';
 
 interface MQTTConfigs {
@@ -22,14 +21,7 @@ export class MQTTMessaging implements IMessaging {
     }
 
     publishService(data: Service): void {
-        const prefix = this.getMqttPrefix();
-
-        if (!prefix) {
-            logger.error('Invalid MQTT prefix!');
-            return;
-        }
-
-        const topic = `${prefix}/services/${data.device}/${data.type}`;
+        const topic = `IoTProject/services/${data.device}/${data.type}`;
 
         this.client.publish(
             topic,
@@ -41,14 +33,7 @@ export class MQTTMessaging implements IMessaging {
     }
 
     publishStatus(data: Status): void {
-        const prefix = this.getMqttPrefix();
-
-        if (!prefix) {
-            logger.error('Invalid MQTT prefix!');
-            return;
-        }
-
-        const topic = `${prefix}/status/${data.device}`;
+        const topic = `IoTProject/status/${data.device}`;
 
         this.client.publish(
             topic,
@@ -95,10 +80,5 @@ export class MQTTMessaging implements IMessaging {
         }
 
         return { user, password, protocol, host, port: Number(port), clientId };
-    }
-
-    private getMqttPrefix(): string | null {
-        if (!config.has('MQTT.prefix')) return null;
-        return config.get('MQTT.prefix');
     }
 }

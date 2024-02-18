@@ -23,7 +23,6 @@
     "typescript": "*"
   },
   "dependencies": {
-    "config": "^3.3.11",
     "dotenv": "^16.4.1",
     "mqtt": "^5.3.5",
     "pino": "^8.18.0"
