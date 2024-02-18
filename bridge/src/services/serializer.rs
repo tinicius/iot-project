@@ -2,21 +2,21 @@ use log::error;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
-pub struct ReceiveAlgorithmData {
+pub struct ReceiveServiceData {
     value: f32,
     time: u64,
 }
 
 #[derive(Deserialize)]
-pub struct ReceiveHealthyData {
+pub struct ReceiveStatusData {
     #[serde(rename(deserialize = "batteryVoltage"))]
     battery_voltage: f32,
-    service: Vec<String>,
+    signal: f32,
     time: u64,
 }
 
 #[derive(Serialize)]
-pub struct TransmitAlgorithmData {
+pub struct TransmitServiceData {
     value: f32,
     time: u64,
     device: String,
@@ -25,81 +25,78 @@ pub struct TransmitAlgorithmData {
 }
 
 #[derive(Serialize)]
-pub struct TransmitHealthyData {
+pub struct TransmitStatusData {
     time: u64,
     device: String,
+    #[serde(rename(serialize = "batteryVoltage"))]
     battery_voltage: f32,
-    services: Vec<String>,
+    signal: f32,
 }
 
-pub struct DataConvert {}
+pub struct Serializer {}
 
-impl DataConvert {
+impl Serializer {
     pub fn new() -> Self {
-        DataConvert {}
+        Serializer {}
     }
 
-    pub fn get_serialized_transmit_algorithm_data(
+    pub fn get_serialized_transmit_service_data(
         &self,
         data: &[u8],
-        topic: String,
-    ) -> Result<Vec<u8>, ()> {
-        let Ok(transmit_data) = self.deserialize_algorithm_data(data, topic) else {
+        topic: &str,
+    ) -> Result<(Vec<u8>, String), ()> {
+        let Ok(transmit_data) = self.deserialize_service_data(data, topic) else {
             return Err(());
         };
 
-        let Ok(serialized) = serde_json::to_vec::<TransmitAlgorithmData>(&transmit_data) else {
+        let Ok(serialized) = serde_json::to_vec::<TransmitServiceData>(&transmit_data) else {
+            return Err(());
+        };
+
+        Ok((serialized, transmit_data.typ))
+    }
+
+    pub fn get_serialized_status_data(&self, data: &[u8], topic: &str) -> Result<Vec<u8>, ()> {
+        let Ok(transmit_data) = self.deserialize_status_data(data, topic) else {
+            return Err(());
+        };
+
+        let Ok(serialized) = serde_json::to_vec::<TransmitStatusData>(&transmit_data) else {
             return Err(());
         };
 
         Ok(serialized)
     }
 
-    pub fn get_serialized_healthy_data(&self, data: &[u8], topic: String) -> Result<Vec<u8>, ()> {
-        let Ok(transmit_data) = self.deserialize_healthy_data(data, topic) else {
-            return Err(());
-        };
-
-        let Ok(serialized) = serde_json::to_vec::<TransmitHealthyData>(&transmit_data) else {
-            return Err(());
-        };
-
-        Ok(serialized)
-    }
-
-    fn deserialize_healthy_data(
-        &self,
-        data: &[u8],
-        topic: String,
-    ) -> Result<TransmitHealthyData, ()> {
-        let Ok(deserialized) = serde_json::from_slice::<ReceiveHealthyData>(data) else {
+    fn deserialize_status_data(&self, data: &[u8], topic: &str) -> Result<TransmitStatusData, ()> {
+        let Ok(deserialized) = serde_json::from_slice::<ReceiveStatusData>(data) else {
             error!("Error on deserialize receive message!");
             return Err(());
         };
 
-        let device = self.get_device_from_healthy_topic(topic);
+        let device = self.get_device_from_status_topic(topic);
 
-        Ok(TransmitHealthyData {
+        Ok(TransmitStatusData {
             time: deserialized.time,
             device,
             battery_voltage: deserialized.battery_voltage,
-            services: deserialized.service,
+            signal: deserialized.signal,
         })
     }
 
-    fn deserialize_algorithm_data(
+    fn deserialize_service_data(
         &self,
         data: &[u8],
-        topic: String,
-    ) -> Result<TransmitAlgorithmData, ()> {
-        let Ok(deserialized) = serde_json::from_slice::<ReceiveAlgorithmData>(data) else {
+        topic: &str,
+    ) -> Result<TransmitServiceData, ()> {
+        let Ok(deserialized) = serde_json::from_slice::<ReceiveServiceData>(data) else {
             error!("Error on deserialize receive message!");
             return Err(());
         };
 
         let (device, typ) = self.get_device_and_type_from_topic(topic);
 
-        Ok(TransmitAlgorithmData {
+        Ok(TransmitServiceData {
             value: deserialized.value,
             time: deserialized.time,
             device,
@@ -107,7 +104,7 @@ impl DataConvert {
         })
     }
 
-    fn get_device_and_type_from_topic(&self, topic: String) -> (String, String) {
+    fn get_device_and_type_from_topic(&self, topic: &str) -> (String, String) {
         let split = topic.split("/");
 
         let v: Vec<&str> = split.collect();
@@ -118,7 +115,7 @@ impl DataConvert {
         (device.to_string(), typ.to_string())
     }
 
-    fn get_device_from_healthy_topic(&self, topic: String) -> String {
+    fn get_device_from_status_topic(&self, topic: &str) -> String {
         let split = topic.split("/");
 
         let v: Vec<&str> = split.collect();

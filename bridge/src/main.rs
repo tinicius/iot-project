@@ -1,42 +1,47 @@
-use infra::{
-    source_messaging::{MQQTConnection, MQTTMessaging},
-    target_messaging::RabbitMQMessaging,
-};
 use log::info;
-use services::bridge::{BridgeService, BridgeServiceImpl};
 
-use crate::{infra::target_messaging::RabbitMQConnection, services::data_convert::DataConvert};
+use crate::{
+    infra::{
+        mqtt_connnection::MQQTConnection, rabbitmq_connection::RabbitMQConnection,
+        source_messaging::MQTTMessaging, target_messaging::RabbitMQMessaging,
+    },
+    services::{bridge::BridgeService, serializer::Serializer},
+};
+
 mod infra;
 mod services;
-mod services_;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), ()> {
     dotenvy::from_filename("./.env").expect("Failed to read .env");
     env_logger::init();
 
     info!("Starting application...");
 
-    let (connection, channel) = RabbitMQConnection::new()
+    let client = MQQTConnection::new()
+        .create_client("BRIDGE_CLIENT".into())
+        .await
+        .expect("Error on create mqtt client!");
+
+    let serializer = Serializer::new();
+
+    let channel = RabbitMQConnection::new()
         .connect()
         .await
-        .expect("Erro on create rabbitmq connection!");
+        .expect("Erro on create rabbitmq channel!");
 
-    info!("{:?}", channel.status());
+    let target_messaging = RabbitMQMessaging::new(channel);
 
-    let target_messaging = RabbitMQMessaging::new(channel, connection);
+    target_messaging
+        .config()
+        .await
+        .expect("Error configuring rabbitmq!");
 
-    let client = MQQTConnection::new()
-        .create_client("client_id".to_string())
-        .expect("Erro on create mqtt client!");
+    let source_messaging = MQTTMessaging::new(client, serializer, Box::new(target_messaging));
 
-    let data_convert = DataConvert::new();
+    let mut service = BridgeService::new(Box::new(source_messaging));
 
-    let source_messaging = MQTTMessaging::new(client, Box::new(target_messaging), data_convert);
+    service.run().await?;
 
-    let mut service = BridgeServiceImpl::new(Box::new(source_messaging));
-
-    let _ = service.subscribe("IoTProject/#".to_string(), 0);
-
-    service.run().await.expect("Error running!");
+    Ok(())
 }

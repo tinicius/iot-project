@@ -4,8 +4,9 @@ use lapin::{
     types::FieldTable,
     BasicProperties, Channel, ExchangeKind,
 };
+use log::error;
 
-use crate::services_::bridge::TargetMessaging;
+use crate::services::bridge::TargetMessaging;
 
 pub struct RabbitMQMessaging {
     channel: Channel,
@@ -13,20 +14,34 @@ pub struct RabbitMQMessaging {
 
 #[async_trait]
 impl TargetMessaging for RabbitMQMessaging {
-    async fn publishService(&self, data: &[u8], service_type: u8) -> Result<(), ()> {
+    async fn publish_service(&self, data: &[u8], service_type: &str) -> Result<(), ()> {
         match service_type {
-            0 => self.basic_publish("TEMP", "TEMP_KEY", data).await,
-            1 => self.basic_publish("HUMIDITY", "HUMIDITY_KEY", data).await,
+            "0" => self.basic_publish("IOT_PROJECT", "TEMP_KEY", data).await,
+            "1" => {
+                self.basic_publish("IOT_PROJECT", "HUMIDITY_KEY", data)
+                    .await
+            }
+            _ => Err(()),
         }
     }
 
-    async fn publishStatus(&self, data: &[u8]) -> Result<(), ()> {
-        self.basic_publish("STATUS", "STATUS_KEY", data).await
+    async fn publish_status(&self, data: &[u8]) -> Result<(), ()> {
+        match self.basic_publish("IOT_PROJECT", "STATUS_KEY", data).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                error!("{:?}", e);
+                Err(())
+            }
+        }
     }
 }
 
 impl RabbitMQMessaging {
-    async fn new(&self, channel: Channel) -> Result<Self, ()> {
+    pub fn new(channel: Channel) -> Self {
+        Self { channel }
+    }
+
+    pub async fn config(&self) -> Result<(), ()> {
         self.create_exchange("IOT_PROJECT").await?;
 
         self.create_queue("TEMP").await?;
@@ -36,7 +51,7 @@ impl RabbitMQMessaging {
         self.bind_queue("IOT_PROJECT", "HUMIDITY", "HUMIDITY_KEY")
             .await?;
 
-        Ok(Self { channel })
+        Ok(())
     }
 
     async fn basic_publish(
@@ -58,7 +73,10 @@ impl RabbitMQMessaging {
             .await
         {
             Ok(_) => Ok(()),
-            Err(_) => Err(()),
+            Err(e) => {
+                error!("->>{}", e);
+                Err(())
+            }
         }
     }
 

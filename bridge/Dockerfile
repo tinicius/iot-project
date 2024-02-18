@@ -11,7 +11,7 @@ RUN cargo build --release
 FROM rust:latest 
 
 WORKDIR /app
-COPY .env ./
+# COPY .env ./
 COPY --from=build /build/target/release/bridge ./
 
 CMD ["./bridge"]
