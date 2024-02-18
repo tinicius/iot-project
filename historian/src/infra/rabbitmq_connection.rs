@@ -1,6 +1,7 @@
+use std::env;
+
 use lapin::{Channel, Connection, ConnectionProperties};
 use log::{error, info};
-use std::env;
 
 struct RabbitMQConfig {
     protocol: String,
@@ -14,7 +15,7 @@ pub struct RabbitMQConnection {}
 
 impl RabbitMQConnection {
     pub fn new() -> Self {
-        return RabbitMQConnection {};
+        RabbitMQConnection {}
     }
 
     fn envs(&self) -> Result<RabbitMQConfig, ()> {
@@ -43,16 +44,16 @@ impl RabbitMQConnection {
             return Err(());
         };
 
-        return Ok(RabbitMQConfig {
+        Ok(RabbitMQConfig {
             protocol,
             host,
             port,
             user,
             password,
-        });
+        })
     }
 
-    pub async fn connect(&mut self) -> Result<(Connection, Channel), ()> {
+    pub async fn connect(&mut self) -> Result<Channel, ()> {
         let envs = self.envs()?;
 
         info!("Starting RABBITMQ connection...");
@@ -64,18 +65,28 @@ impl RabbitMQConnection {
 
         info!("{}", addr);
 
-        let Ok(conn) = Connection::connect(&addr, ConnectionProperties::default()).await else {
-            error!("Failed to connect in rabbitmq!");
-            return Err(());
-        };
+        match Connection::connect(&addr, ConnectionProperties::default()).await {
+            Ok(connection) => match connection.create_channel().await {
+                Ok(channel) => {
+                    info!("RABBITMQ connected!");
+                    Ok(channel)
+                }
+                Err(e) => {
+                    error!("{}", e);
+                    Err(())
+                }
+            },
+            Err(e) => {
+                error!("{}", e);
+                Err(())
+            }
+        }
 
-        let Ok(channel) = conn.create_channel().await else {
-            error!("Failed create channel in rabbitmq!");
-            return Err(());
-        };
+        // let Ok(channel) = conn.create_channel().await else {
+        //     error!("Failed create channel in rabbitmq!");
+        //     return Err(());
+        // };
 
-        info!("RABBITMQ connected!");
-
-        Ok((conn, channel))
+        // Ok(channel)
     }
 }

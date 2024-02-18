@@ -1,27 +1,24 @@
+use async_trait::async_trait;
 use aws_sdk_timestreamwrite::{
     types::{Dimension, MeasureValue, MeasureValueType, Record, TimeUnit},
     Client,
 };
 use log::error;
 
-use crate::services::data_convert::{AlgorithmData, HealthyData};
+use crate::services::{
+    consumer::Timeseries,
+    serializer::{ServiceData, StatusData},
+};
 
-pub struct Timeseries {
+pub struct Timestream {
     client: Client,
     database: String,
 }
 
-impl Timeseries {
-    pub fn new(client: Client, database: String) -> Self {
-        Timeseries { client, database }
-    }
-
-    pub async fn save_algorithm_data(
-        &self,
-        table_name: String,
-        data: AlgorithmData,
-    ) -> Result<(), ()> {
-        let Ok(record) = self.create_algorithm_data_record(data) else {
+#[async_trait]
+impl Timeseries for Timestream {
+    async fn save_service_data(&self, table_name: String, data: ServiceData) -> Result<(), ()> {
+        let Ok(record) = self.create_service_data_record(data) else {
             return Err(());
         };
 
@@ -42,27 +39,8 @@ impl Timeseries {
         };
     }
 
-    fn create_algorithm_data_record(&self, data: AlgorithmData) -> Result<Record, ()> {
-        let Ok(device) = self.create_dimension("device".into(), data.device.to_string()) else {
-            return Err(());
-        };
-
-        let Ok(typ) = self.create_dimension("type".into(), data.typ.to_string()) else {
-            return Err(());
-        };
-
-        Ok(Record::builder()
-            .set_time(Some(data.time.to_string()))
-            .set_time_unit(Some(TimeUnit::Milliseconds))
-            .set_measure_name(Some("value".to_string()))
-            .set_dimensions(Some(vec![device, typ]))
-            .set_measure_value(Some(data.value.to_string()))
-            .set_measure_value_type(Some(MeasureValueType::Double))
-            .build())
-    }
-
-    pub async fn save_healthy_data(&self, table_name: String, data: HealthyData) -> Result<(), ()> {
-        let Ok(record) = self.create_healthy_record(data) else {
+    async fn save_status_data(&self, table_name: String, data: StatusData) -> Result<(), ()> {
+        let Ok(record) = self.create_status_record(data) else {
             return Err(());
         };
 
@@ -82,15 +60,34 @@ impl Timeseries {
             }
         }
     }
+}
 
-    fn create_healthy_record(&self, data: HealthyData) -> Result<Record, ()> {
+impl Timestream {
+    pub fn new(client: Client, database: String) -> Self {
+        Self { client, database }
+    }
+
+    fn create_service_data_record(&self, data: ServiceData) -> Result<Record, ()> {
         let Ok(device) = self.create_dimension("device".into(), data.device.to_string()) else {
             return Err(());
         };
 
-        let services_string = data.services.into_iter().collect::<String>();
+        let Ok(typ) = self.create_dimension("type".into(), data.typ.to_string()) else {
+            return Err(());
+        };
 
-        let Ok(services) = self.create_dimension("services".to_string(), services_string) else {
+        Ok(Record::builder()
+            .set_time(Some(data.time.to_string()))
+            .set_time_unit(Some(TimeUnit::Milliseconds))
+            .set_measure_name(Some("value".to_string()))
+            .set_dimensions(Some(vec![device, typ]))
+            .set_measure_value(Some(data.value.to_string()))
+            .set_measure_value_type(Some(MeasureValueType::Double))
+            .build())
+    }
+
+    fn create_status_record(&self, data: StatusData) -> Result<Record, ()> {
+        let Ok(device) = self.create_dimension("device".into(), data.device.to_string()) else {
             return Err(());
         };
 
@@ -102,12 +99,20 @@ impl Timeseries {
             return Err(());
         };
 
+        let Ok(signal) = self.create_measure(
+            String::from("signal"),
+            MeasureValueType::Double,
+            data.signal.to_string(),
+        ) else {
+            return Err(());
+        };
+
         Ok(Record::builder()
             .set_time(Some(data.time.to_string()))
             .set_time_unit(Some(TimeUnit::Milliseconds))
-            .set_measure_name(Some("battery".to_string()))
-            .set_dimensions(Some(vec![device, services]))
-            .set_measure_values(Some(vec![battery_voltage]))
+            .set_dimensions(Some(vec![device]))
+            .set_measure_name(Some("status".to_string()))
+            .set_measure_values(Some(vec![battery_voltage, signal]))
             .set_measure_value_type(Some(MeasureValueType::Multi))
             .build())
     }

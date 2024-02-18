@@ -1,10 +1,10 @@
 use infra::{
-    consumer::ConsumerService, rmq_connection::RabbitMQConnection, timeseries::Timeseries,
+    rabbitmq_connection::RabbitMQConnection, timeseries::Timestream,
     tms_connnection::TimestreamConnection,
 };
 
 use serde::Deserialize;
-use services::data_convert::DataConvert;
+use services::{consumer::ConsumerService, serializer::Serializer};
 
 #[derive(Deserialize, Debug)]
 pub struct MQTTMessage {
@@ -21,21 +21,21 @@ async fn main() -> Result<(), ()> {
     dotenvy::from_filename("./.env").expect("Failed to read .env");
     env_logger::init();
 
-    let (_connection, channel) = RabbitMQConnection::new()
+    let channel = RabbitMQConnection::new()
         .connect()
         .await
         .expect("Error on create rabbitmq connection!");
 
-    let data_convert = DataConvert::new();
+    let serializer = Serializer::new();
 
     let timestream_connection = TimestreamConnection::new()
         .connect()
         .await
         .expect("Erro on create aws connection!");
 
-    let timeseries = Timeseries::new(timestream_connection, "iot-database".to_string());
+    let timeseries = Timestream::new(timestream_connection, "iot-database".to_string());
 
-    let consumer = ConsumerService::new(channel, data_convert, timeseries);
+    let consumer = ConsumerService::new(channel, serializer, Box::new(timeseries));
 
     let _ = consumer.listen().await;
 

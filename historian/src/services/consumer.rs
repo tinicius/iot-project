@@ -1,26 +1,35 @@
-use super::timeseries::Timeseries;
-use crate::services::data_convert::DataConvert;
-use futures_util::{stream::FuturesUnordered, Future, StreamExt};
+use async_trait::async_trait;
+use futures_util::StreamExt;
+use log::{error, info};
+
+use std::pin::Pin;
+
+use super::serializer::{Serializer, ServiceData, StatusData};
+use futures_util::{stream::FuturesUnordered, Future};
 use lapin::{
     message::Delivery,
     options::{BasicAckOptions, BasicConsumeOptions, BasicNackOptions},
     types::FieldTable,
     Channel,
 };
-use log::error;
-use std::pin::Pin;
+
+#[async_trait]
+pub trait Timeseries {
+    async fn save_service_data(&self, table_name: String, data: ServiceData) -> Result<(), ()>;
+    async fn save_status_data(&self, table_name: String, data: StatusData) -> Result<(), ()>;
+}
 
 pub struct ConsumerService {
     channel: Channel,
-    data_convert: DataConvert,
-    timeseries: Timeseries,
+    serializer: Serializer,
+    timeseries: Box<dyn Timeseries>,
 }
 
 impl ConsumerService {
-    pub fn new(channel: Channel, data_convert: DataConvert, timeseries: Timeseries) -> Self {
+    pub fn new(channel: Channel, serializer: Serializer, timeseries: Box<dyn Timeseries>) -> Self {
         ConsumerService {
             channel,
-            data_convert,
+            serializer,
             timeseries,
         }
     }
@@ -28,26 +37,23 @@ impl ConsumerService {
     pub async fn listen(&self) -> Result<(), ()> {
         let mut futures = FuturesUnordered::<Pin<Box<dyn Future<Output = Result<(), ()>>>>>::new();
 
-        futures.push(Box::pin(self.data_consumer("data".to_string())));
-        futures.push(Box::pin(self.healthy_consumer("healthy".to_string())));
+        futures.push(Box::pin(self.service_consumer(String::from("TEMP"))));
+        futures.push(Box::pin(self.service_consumer(String::from("HUMIDITY"))));
+
+        futures.push(Box::pin(self.status_consumer(String::from("STATUS"))));
 
         while let Some(_) = futures.next().await {}
 
         Ok(())
     }
 
-    async fn data_consumer(&self, queue: String) -> Result<(), ()> {
+    async fn service_consumer(&self, queue: String) -> Result<(), ()> {
         let mut consumer = self
             .channel
             .basic_consume(
                 &queue,
-                "data-consumer",
-                BasicConsumeOptions {
-                    no_ack: false,
-                    nowait: false,
-                    exclusive: true,
-                    no_local: true,
-                },
+                &format!("{}-tag", queue),
+                BasicConsumeOptions::default(),
                 FieldTable::default(),
             )
             .await
@@ -56,7 +62,7 @@ impl ConsumerService {
         while let Some(event) = consumer.next().await {
             match event {
                 Ok(delivery) => {
-                    let _ = self.handler_algorithm_data(delivery).await;
+                    let _ = self.handler_service_data(delivery).await;
                 }
                 Err(err) => {
                     error!("{}", err);
@@ -67,18 +73,17 @@ impl ConsumerService {
         Ok(())
     }
 
-    async fn handler_algorithm_data(&self, delivery: Delivery) -> Result<(), ()> {
-        let Ok(algorithm_data) = self
-            .data_convert
-            .get_deserialize_algorithm_data(&delivery.data)
-        else {
-            error!("Erro on deserialize algorithm data!");
+    async fn handler_service_data(&self, delivery: Delivery) -> Result<(), ()> {
+        let Ok(service_data) = self.serializer.get_deserialize_service_data(&delivery.data) else {
+            error!("Error on deserialize algorithm data!");
             return Err(());
         };
 
+        info!("{:?}", service_data.device);
+
         match self
             .timeseries
-            .save_algorithm_data("data".to_string(), algorithm_data)
+            .save_service_data("data".to_string(), service_data)
             .await
         {
             Ok(_) => match delivery.ack(BasicAckOptions { multiple: false }).await {
@@ -100,18 +105,13 @@ impl ConsumerService {
         }
     }
 
-    async fn healthy_consumer(&self, queue: String) -> Result<(), ()> {
+    async fn status_consumer(&self, queue: String) -> Result<(), ()> {
         let Ok(mut consumer) = self
             .channel
             .basic_consume(
                 &queue,
-                "healthy-consumer",
-                BasicConsumeOptions {
-                    no_ack: false,
-                    nowait: false,
-                    exclusive: true,
-                    no_local: true,
-                },
+                &format!("{}-tag", queue),
+                BasicConsumeOptions::default(),
                 FieldTable::default(),
             )
             .await
@@ -122,7 +122,7 @@ impl ConsumerService {
         while let Some(event) = consumer.next().await {
             match event {
                 Ok(delivery) => {
-                    let _ = self.handler_healthy_data(delivery).await;
+                    let _ = self.handler_status_data(delivery).await;
                 }
                 Err(err) => {
                     error!("{}", err);
@@ -133,17 +133,14 @@ impl ConsumerService {
         Ok(())
     }
 
-    async fn handler_healthy_data(&self, delivery: Delivery) -> Result<(), ()> {
-        let Ok(healthy_data) = self
-            .data_convert
-            .get_deserialize_healthy_data(&delivery.data)
-        else {
+    async fn handler_status_data(&self, delivery: Delivery) -> Result<(), ()> {
+        let Ok(status_data) = self.serializer.get_deserialize_status_data(&delivery.data) else {
             return Err(());
         };
 
         match self
             .timeseries
-            .save_healthy_data(String::from("healthy"), healthy_data)
+            .save_status_data(String::from("status"), status_data)
             .await
         {
             Ok(_) => match delivery.ack(BasicAckOptions { multiple: false }).await {
