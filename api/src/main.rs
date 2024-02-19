@@ -7,9 +7,11 @@ use std::error::Error;
 use log::info;
 use tonic::transport::Server;
 
-use crate::infra::{timeseries::Timeseries, tms_connection::TimestreamConnection};
-use crate::server::io_t_data_services_server::IoTDataServicesServer;
-use crate::services::data::IoTDataServicesImpl;
+use crate::{
+    infra::{timeseries::Timeseries, tms_connection::TimestreamConnection},
+    server::io_t_services_server::IoTServicesServer,
+    services::service::ServicesImpl,
+};
 
 pub mod infra;
 pub mod services;
@@ -28,14 +30,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let timeseries = Timeseries::new(client);
 
-    // let _ = timeseries.get_all_iot_data().await;
-
-    let service = IoTDataServicesImpl::new(timeseries);
+    let service = ServicesImpl::new(timeseries);
 
     let addr = "0.0.0.0:50051".parse()?;
 
     Server::builder()
-        .add_service(IoTDataServicesServer::new(service))
+        .add_service(IoTServicesServer::new(service))
         .serve(addr)
         .await?;
 

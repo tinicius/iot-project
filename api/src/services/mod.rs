@@ -1,2 +1,1 @@
-pub mod data;
-pub mod healthy;
+pub mod service;

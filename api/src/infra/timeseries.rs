@@ -1,12 +1,10 @@
-use std::fmt::format;
-
 use aws_sdk_timestreamquery::{
     types::{ColumnInfo, Row},
     Client,
 };
 use log::{error, info};
 
-use crate::server::IoTData;
+use crate::server::{Data, Device, Service};
 
 pub struct Timeseries {
     client: Client,
@@ -17,67 +15,81 @@ impl Timeseries {
         Timeseries { client }
     }
 
-    pub async fn get_all_iot_data(&self) -> Result<Vec<IoTData>, ()> {
-        let query = String::from("select * from \"iot-database\".data");
+    pub async fn gel_all_services(&self) -> Result<Vec<Device>, ()> {
+        let mut devices: Vec<Device> = vec![];
 
-        match self
+        let Ok(devices_names) = self.get_all_devices_name().await else {
+            error!("Error on query get all devices name!");
+            return Err(());
+        };
+
+        for device_name in devices_names {
+            let query: String = format!(
+                "select * from \"iot-database\".data where device = \'{}\'",
+                device_name
+            );
+
+            info!("{}", query);
+
+            let Ok(services_query) = self
+                .client
+                .query()
+                .set_query_string(Some(query))
+                .send()
+                .await
+            else {
+                return Err(());
+            };
+
+            let Ok(services) =
+                self.process_services(services_query.column_info(), services_query.rows())
+            else {
+                return Err(());
+            };
+
+            devices.push(Device {
+                device: device_name,
+                services,
+            })
+        }
+
+        Ok(devices)
+    }
+
+    pub async fn get_all_devices_name(&self) -> Result<Vec<String>, ()> {
+        let query: String = String::from("select distinct \"device\" from \"iot-database\".data");
+
+        let Ok(response) = self
             .client
             .query()
             .set_query_string(Some(query))
             .send()
             .await
-        {
-            Ok(result) => match self.process_iot_data(result.column_info(), result.rows()) {
-                Ok(data) => {
-                    info!("{:?}", data);
-                    Ok(data)
-                }
-                Err(_) => Err(()),
-            },
-            Err(err) => {
-                error!("{}", err);
-                Err(())
-            }
+        else {
+            return Err(());
+        };
+
+        let mut devices: Vec<String> = vec![];
+
+        for row in response.rows() {
+            let device = Option::expect(
+                row.data[0].scalar_value.clone(),
+                "Error in device scalar_value!",
+            );
+
+            devices.push(device);
         }
+
+        Ok(devices)
     }
 
-    pub async fn get_iot_data_in_interval(
-        &self,
-        start_date_ms: u64,
-        end_date_ms: u64,
-    ) -> Result<Vec<IoTData>, ()> {
-        let query = format!("select * from \"iot-database\".data where time >= ago");
-
-        match self
-            .client
-            .query()
-            .set_query_string(Some(query))
-            .send()
-            .await
-        {
-            Ok(result) => match self.process_iot_data(result.column_info(), result.rows()) {
-                Ok(data) => {
-                    info!("{:?}", data);
-                    Ok(data)
-                }
-                Err(_) => Err(()),
-            },
-            Err(err) => {
-                error!("{}", err);
-                Err(())
-            }
-        }
-    }
-
-    fn process_iot_data(
+    fn process_services(
         &self,
         column_info: &[ColumnInfo],
         rows: &[Row],
-    ) -> Result<Vec<IoTData>, ()> {
-        let mut data: Vec<IoTData> = vec![];
-
-        info!("{:?}", rows);
-        info!("{:?}", column_info);
+    ) -> Result<Vec<Service>, ()> {
+        let mut temp_data: Vec<Data> = vec![];
+        let mut humidity_data: Vec<Data> = vec![];
 
         for row in rows {
             let len = row.data.len();
@@ -117,14 +129,20 @@ impl Timeseries {
                 };
             }
 
-            data.push(IoTData {
-                device: data_device,
-                r#type: data_type,
-                value: data_value,
-                time: data_time,
-            })
+            if data_type == "0" {
+                temp_data.push(Data {
+                    time: data_time,
+                    value: data_value
+                        .parse::<f64>()
+                        .map(|n| n + 1.5)
+                        .expect("Error parsing data_value to f64!"),
+                })
+            }
         }
 
-        Ok(data)
+        Ok(vec![Service {
+            service: String::from("1"),
+            data: temp_data,
+        }])
     }
 }
