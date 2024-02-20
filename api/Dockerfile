@@ -3,9 +3,9 @@ FROM rust:latest as build
 WORKDIR /build
 COPY . .
 
-RUN apt update
-RUN apt install -y libssl-dev build-essential cmake
-RUN apt install -y protobuf-compiler
+RUN apt update \
+    && apt install -y libssl-dev build-essential cmake \
+    && apt install -y protobuf-compiler
 
 RUN cargo build --release
 

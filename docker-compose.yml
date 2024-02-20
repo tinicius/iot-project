@@ -97,6 +97,10 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
+
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} 
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
     networks:
       - my-net
     depends_on:
@@ -112,7 +116,12 @@ services:
   api:
     container_name: api
     image: api:latest
-    # environment:
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} 
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+    ports:
+      - 50051:50051
     networks:
       - my-net
     depends_on:
@@ -124,3 +133,4 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
+      
