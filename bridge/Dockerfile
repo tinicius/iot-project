@@ -8,7 +8,7 @@ RUN apt install -y libssl-dev build-essential cmake
 
 RUN cargo build --release
 
-FROM rust:latest 
+FROM rust:slim-bookworm 
 
 WORKDIR /app
 COPY .env ./

@@ -9,7 +9,7 @@ RUN apt update \
 
 RUN cargo build --release
 
-FROM rust:latest 
+FROM rust:slim-bookworm
 
 WORKDIR /app
 COPY .env ./

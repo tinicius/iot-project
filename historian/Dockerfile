@@ -3,12 +3,12 @@ FROM rust:latest as build
 WORKDIR /build
 COPY . .
 
-RUN apt update
-RUN apt install -y libssl-dev build-essential cmake
+RUN apt update \
+    && apt install -y libssl-dev build-essential cmake
 
 RUN cargo build --release
 
-FROM rust:latest 
+FROM rust:slim-bookworm 
 
 WORKDIR /app
 COPY .env ./
