@@ -8,13 +8,14 @@ export class StatusService implements IStatus {
     constructor(
         public batteryVoltageGenerator: IGenerator,
         public signalGenerator: IGenerator,
-        public messaging: IMessaging
+        public messaging: IMessaging,
+        public device: string
     ) {}
 
     send(): void {
         const batteryVoltage = this.batteryVoltageGenerator.generate();
         const signal = this.signalGenerator.generate();
-        const device = this.getDevice();
+        const device = this.device;
 
         if (!device) {
             logger.error('Invalid device name!');

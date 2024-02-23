@@ -7,15 +7,17 @@ import { IService } from '../service';
 export class HumidityService implements IService {
     generator: IGenerator;
     messaging: IMessaging;
+    device: string;
 
-    constructor(generator: IGenerator, messaging: IMessaging) {
+    constructor(generator: IGenerator, messaging: IMessaging, device: string) {
         this.generator = generator;
         this.messaging = messaging;
+        this.device = device;
     }
 
     send(): void {
         const value = this.generator.generate();
-        const device = this.getDevice();
+        const device = this.device;
 
         if (!device) {
             logger.error('Invalid device name!');
@@ -30,13 +32,5 @@ export class HumidityService implements IService {
         };
 
         this.messaging.publishService(data);
-    }
-
-    private getDevice(): string | null {
-        const deviceName = process.env.DEVICE;
-
-        if (!deviceName) return null;
-
-        return deviceName;
     }
 }

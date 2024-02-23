@@ -5,5 +5,6 @@ export interface IStatus {
     batteryVoltageGenerator: IGenerator;
     signalGenerator: IGenerator;
     messaging: IMessaging;
+    device: string;
     send(): void;
 }

@@ -10,23 +10,31 @@ import { StatusService } from './services/impl/status';
         path: `.env`,
     });
 
+    const device = `device ${Math.floor(Math.random() * 100)}`;
+
     const messaging = new MQTTMessaging();
 
     const temperatureGenerator = new RandomGenerator(10, 100);
     const temperatureService = new TemperatureService(
         temperatureGenerator,
-        messaging
+        messaging,
+        device
     );
 
     const humidityGenerator = new RandomGenerator(0, 1);
-    const humidityService = new HumidityService(humidityGenerator, messaging);
+    const humidityService = new HumidityService(
+        humidityGenerator,
+        messaging,
+        device
+    );
 
     const batteryVoltageGenerator = new RandomGenerator(0, 5);
     const signalGenerator = new RandomGenerator(0, 100);
     const statusService = new StatusService(
         batteryVoltageGenerator,
         signalGenerator,
-        messaging
+        messaging,
+        device
     );
 
     const {
