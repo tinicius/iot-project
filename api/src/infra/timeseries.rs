@@ -1,10 +1,18 @@
 use aws_sdk_timestreamquery::{
+    operation::query::QueryOutput,
     types::{ColumnInfo, Row},
     Client,
 };
-use log::{error, info};
+use log::error;
 
 use crate::server::{Data, Device, Service};
+
+pub struct ServiceTimeseriesData {
+    device: String,
+    r#type: String,
+    value: String,
+    time: String,
+}
 
 pub struct Timeseries {
     client: Client,
@@ -16,133 +24,155 @@ impl Timeseries {
     }
 
     pub async fn gel_all_services(&self) -> Result<Vec<Device>, ()> {
-        let mut devices: Vec<Device> = vec![];
+        let query_output = self
+            .call_query("select * from \"iot-database\".data order by device")
+            .await?;
 
-        let Ok(devices_names) = self.get_all_devices_name().await else {
-            error!("Error on query get all devices name!");
-            return Err(());
-        };
-
-        for device_name in devices_names {
-            let query: String = format!(
-                "select * from \"iot-database\".data where device = \'{}\'",
-                device_name
-            );
-
-            info!("{}", query);
-
-            let Ok(services_query) = self
-                .client
-                .query()
-                .set_query_string(Some(query))
-                .send()
-                .await
-            else {
-                return Err(());
-            };
-
-            let Ok(services) =
-                self.process_services(services_query.column_info(), services_query.rows())
-            else {
-                return Err(());
-            };
-
-            devices.push(Device {
-                device: device_name,
-                services,
-            })
-        }
-
-        Ok(devices)
+        self.process_devices(query_output.rows(), query_output.column_info())
     }
 
-    pub async fn get_all_devices_name(&self) -> Result<Vec<String>, ()> {
-        let query: String = String::from("select distinct \"device\" from \"iot-database\".data");
-
-        let Ok(response) = self
+    async fn call_query(&self, query: &str) -> Result<QueryOutput, ()> {
+        match self
             .client
             .query()
-            .set_query_string(Some(query))
+            .set_query_string(Some(query.to_owned()))
             .send()
             .await
-        else {
-            return Err(());
-        };
-
-        let mut devices: Vec<String> = vec![];
-
-        for row in response.rows() {
-            let device = Option::expect(
-                row.data[0].scalar_value.clone(),
-                "Error in device scalar_value!",
-            );
-
-            devices.push(device);
+        {
+            Ok(query_output) => Ok(query_output),
+            Err(_) => Err(()),
         }
-
-        Ok(devices)
     }
 
-    fn process_services(
+    fn process_devices(
         &self,
-        column_info: &[ColumnInfo],
         rows: &[Row],
-    ) -> Result<Vec<Service>, ()> {
+        columns_info: &[ColumnInfo],
+    ) -> Result<Vec<Device>, ()> {
+        let mut devices: Vec<Device> = vec![];
+
         let mut temp_data: Vec<Data> = vec![];
         let mut humidity_data: Vec<Data> = vec![];
 
-        for row in rows {
-            let len = row.data.len();
+        let mut device = String::from("");
 
-            let mut data_type: String = String::from("");
-            let mut data_device: String = String::from("");
-            let mut data_value: String = String::from("");
-            let mut data_time: String = String::from("");
+        for (index, row) in rows.iter().enumerate() {
+            let data = self
+                .process_service_timeseries_data(row, columns_info)
+                .expect("Error on process data from row and columns!");
 
-            for index in 0..len {
-                let info = &column_info[index];
-
-                if let Some(info) = &info.name {
-                    if info == "type" {
-                        if let Some(scalar_value) = &row.data[index].scalar_value {
-                            data_type = scalar_value.clone()
-                        }
-                    }
-
-                    if info == "device" {
-                        if let Some(scalar_value) = &row.data[index].scalar_value {
-                            data_device = scalar_value.clone()
-                        }
-                    }
-
-                    if info == "measure_value::double" {
-                        if let Some(scalar_value) = &row.data[index].scalar_value {
-                            data_value = scalar_value.clone()
-                        }
-                    }
-
-                    if info == "time" {
-                        if let Some(scalar_value) = &row.data[index].scalar_value {
-                            data_time = scalar_value.clone()
-                        }
-                    }
-                };
+            if data.device != device && index != 0 {
+                self.push_device(
+                    &mut devices,
+                    &mut temp_data,
+                    &mut humidity_data,
+                    &data.device,
+                );
             }
 
-            if data_type == "0" {
+            if data.r#type == "0" {
                 temp_data.push(Data {
-                    time: data_time,
-                    value: data_value
-                        .parse::<f64>()
-                        .map(|n| n + 1.5)
-                        .expect("Error parsing data_value to f64!"),
+                    time: data.time,
+                    value: self.parse_f64(data.value).expect("Error!"),
                 })
+            } else if data.r#type == "1" {
+                humidity_data.push(Data {
+                    time: data.time,
+                    value: self.parse_f64(data.value).expect("Error!"),
+                })
+            }
+
+            if index == rows.len() - 1 {
+                self.push_device(
+                    &mut devices,
+                    &mut temp_data,
+                    &mut humidity_data,
+                    &data.device,
+                );
+            }
+
+            device = data.device.clone();
+        }
+
+        Ok(devices)
+    }
+
+    fn process_service_timeseries_data(
+        &self,
+        row: &Row,
+        columns_info: &[ColumnInfo],
+    ) -> Result<ServiceTimeseriesData, ()> {
+        let mut data: ServiceTimeseriesData = ServiceTimeseriesData {
+            device: "".to_owned(),
+            r#type: "".to_owned(),
+            value: "".to_owned(),
+            time: "".to_owned(),
+        };
+
+        let len = row.data.len();
+
+        for index in 0..len {
+            let Some(column_name) = &columns_info[index].name else {
+                return Err(());
+            };
+
+            let Some(column_value) = &row.data[index].scalar_value else {
+                return Err(());
+            };
+
+            match column_name.as_str() {
+                "type" => data.r#type = column_value.to_string(),
+                "device" => data.device = column_value.to_string(),
+                "measure_value::double" => data.value = column_value.to_string(),
+                "time" => data.time = column_value.to_string(),
+                "measure_name" => continue,
+                &_ => {
+                    error!("Invalid column name {}!", column_name);
+                    return Err(());
+                }
             }
         }
 
-        Ok(vec![Service {
-            service: String::from("1"),
-            data: temp_data,
-        }])
+        Ok(data)
+    }
+
+    fn push_device(
+        &self,
+        devices: &mut Vec<Device>,
+        temp_data: &mut Vec<Data>,
+        humidity_data: &mut Vec<Data>,
+        actual_device: &String,
+    ) {
+        let mut services: Vec<Service> = vec![];
+
+        if temp_data.len() > 0 {
+            services.push(Service {
+                service: "TEMP".to_owned(),
+                data: temp_data.clone(),
+            });
+
+            temp_data.clear();
+        }
+
+        if humidity_data.len() > 0 {
+            services.push(Service {
+                service: "HUMIDITY".to_owned(),
+                data: humidity_data.clone(),
+            });
+
+            humidity_data.clear();
+        }
+
+        devices.push(Device {
+            device: actual_device.clone(),
+            services,
+        });
+    }
+
+    fn parse_f64(&self, str: String) -> Result<f64, ()> {
+        match str.parse::<f64>().map(|n| n + 1.5) {
+            Ok(value) => Ok(value),
+            Err(_) => Err(()),
+        }
     }
 }
