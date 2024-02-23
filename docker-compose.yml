@@ -42,8 +42,11 @@ services:
         retries: 5
   
   sensor-simulator:
-    container_name: sensor-simulator
+    # container_name: sensor-simulator
     image: sensor-simulator:latest
+    deploy:
+      mode: replicated
+      replicas: 3
     environment:
       - DEVICE=local
       - MQTT_USER=admin
