@@ -19,8 +19,8 @@
   </p>
 </div>
 
-[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/tinicius/iot-project/blob/e4bf8fc9dc8ababf0c9a2fdaeba1e0cb9e09bf75/README.md)
-[![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](https://github.com/tinicius/iot-project/blob/e4bf8fc9dc8ababf0c9a2fdaeba1e0cb9e09bf75/README.pt-br.md)
+[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/tinicius/iot-project/blob/main/README.md)
+[![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](https://github.com/tinicius/iot-project/blob/main/README.pt-br.md)
 
   <summary>Sumário</summary>  
   <ol>
