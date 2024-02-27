@@ -17,7 +17,7 @@
   
 
   <p align="center">
-    An backend project focusing on cutting-edge IoT services and patterns
+    Projeto de estudo Back-end focando em tecnologias de IoT
   </p>
 </div>
 
@@ -26,30 +26,28 @@
 
 <!-- TABLE OF CONTENTS -->
 
-  <summary>Table of Contents</summary>  
+  <summary>Sumário</summary>  
   <ol>
     <li>
-      <a href="#about-the-project">Introduction</a>
+      <a href="#about-the-project">Sobre o Projeto</a>
     <li>
       <a href="#getting started">Getting started</a>
       <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-      </ul>
-      <ul>
-        <li><a href="#installation">Installation</a></li>
+        <li><a href="#prerequisites">Pré-requisitos</a></li>
+        <li><a href="#installation">Instalação</a></li>
       </ul>
     </li>
     <li>
-      <a href="#services">Services</a>
+      <a href="#services">Services Desenvolvidos</a>
       <ul>
-        <li><a href="#device-simulator">Device Simulator</a></li>
-        <li><a href="#consumer">Consumer</a></li>
-        <li><a href="#historian">Historian</a></li>
-        <li><a href="#api">Api</a></li>
+        <li><a href="#device-simulator">Device Simulator (NodeJs)</a></li>
+        <li><a href="#consumer">Consumer (Rust)</a></li>
+        <li><a href="#historian">Historian (Rust)</a></li>
+        <li><a href="#api">Api (Rust)</a></li>
       </ul>
     </li>
     <li>
-      <a href="#tech">Tech</a>
+      <a href="#tech">Tecnologias Utilizadas</a>
       <ul>
         <li><a href="#mqtt">MQTT</a></li>
         <li><a href="#rabbitmq">RabbitMQ</a></li>
@@ -58,7 +56,7 @@
       </ul>
     </li>
     <li>
-      <a href="#progress">In progress</a>
+      <a href="#progress">Melhorias Futuras</a>
       <ul>
         <li><a href="#apihttp">API HTTP</a></li>
         <li><a href="#kafka">Kafka</a></li>
@@ -66,11 +64,19 @@
         <li><a href="#front">Front end (?)</a></li>
       </ul>
     </li>
-    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#conclusion">Conclusão</a></li>
   </ol>
 
 <!-- ABOUT THE PROJECT -->
-## About The Project
+## Sobre o Projeto
+
+Este projeto tem como objetivo principal simular uma infraestrutura de Internet das Coisas (IoT), partindo da geração de dados por meio de um "sensor" simulado. Este sensor é uma aplicação desenvolvida para gerar dados aleatórios, emulando o comportamento de um dispositivo real. Os dados gerados são então transportados através do protocolo MQTT para um serviço de mensageria, no nosso caso o RabbitMQ.
+
+Uma aplicação irá consumir os dados no serviço de mensagaria e os armazenar em um banco de dados Timeseries. Em nosso projeto, optamos por utilizar o AWS Timestream como nosso banco de dados.
+
+Por fim, para tornar os dados disponíveis para consumo externo, desenvolvemos uma API utilizando gRPC. Esta API é responsável por acessar os dados armazenados no banco de dados Timeseries e responder às requisições dos clientes de acordo com suas necessidades específicas. 
+
+Dessa forma, através dessa infraestrutura simulada, somos capazes de replicar o fluxo de dados típico de um ambiente IoT, desde a geração dos dados até a sua disponibilização para consumo externo através de uma API, demonstrando alguns conceitos e tecnologias envolvidas nesse ecossistema.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
