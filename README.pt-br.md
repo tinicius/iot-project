@@ -270,7 +270,7 @@ Distributed under the MIT License.
 Vinicius Alves Pereira
 
 
-[![text](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](www.linkedin.com/in/dev-vini-pereira)
+[![text](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/dev-vini-pereira)
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
