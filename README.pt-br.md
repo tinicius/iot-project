@@ -14,8 +14,6 @@
   
   <h1 align="center">Iot Project</h1>
 
-  
-
   <p align="center">
     Projeto de estudo Back-end focando em tecnologias de IoT
   </p>
@@ -24,17 +22,16 @@
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/jonatasemidio/multilanguage-readme-pattern/blob/master/README.md)
 [![pt-br](https://img.shields.io/badge/lang-pt--br-green.svg)](https://github.com/jonatasemidio/multilanguage-readme-pattern/blob/master/README.pt-br.md)
 
-<!-- TABLE OF CONTENTS -->
-
   <summary>Sumário</summary>  
   <ol>
     <li>
-      <a href="#about-the-project">Sobre o Projeto</a>
+      <a href="#sobre o projeto">Sobre o Projeto</a>
     <li>
       <a href="#getting started">Getting started</a>
       <ul>
         <li><a href="#prerequisites">Pré-requisitos</a></li>
         <li><a href="#installation">Instalação</a></li>
+        <li><a href="#testando a aplicação">Testando a aplicação</a></li>
       </ul>
     </li>
     <li>
@@ -67,7 +64,6 @@
     <li><a href="#conclusion">Conclusão</a></li>
   </ol>
 
-<!-- ABOUT THE PROJECT -->
 ## Sobre o Projeto
 
 Este projeto tem como objetivo principal simular uma infraestrutura de Internet das Coisas (IoT), partindo da geração de dados por meio de um "sensor" simulado. Este sensor é uma aplicação desenvolvida para gerar dados aleatórios, emulando o comportamento de um dispositivo real. Os dados gerados são então transportados através do protocolo MQTT para um serviço de mensageria, no nosso caso o RabbitMQ.
@@ -80,27 +76,39 @@ Dessa forma, através dessa infraestrutura simulada, somos capazes de replicar o
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-<!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+Este guia demonstrará como instalar e executar o projeto em seu computador local de maneira simples e eficiente.
 
-Our application is distributed via Docker containers, making it easy to install and run in various environments.
+A nossa aplicação é distribuída através de contêineres Docker, proporcionando uma instalação facilitada dos pacotes e serviços externos necessários para o funcionamento do projeto.
+
+Cada pasta dentro do projeto representa um serviço distinto, cada um desenvolvido independentemente e contendo o seu próprio Dockerfile. Para integrar e executar o projeto como um todo, utilizamos o Docker Compose. Este arquivo centralizado inclui as imagens de todos os serviços necessários para o funcionamento da aplicação.
 
 ### Prerequisites
 
-Make sure you have Docker installed on your machine. If you don't have it yet, you can download and install it from the [official Docker website](docker.com).
+#### Docker
 
-Além disso, é necessário configurar algumas variáveis de ambiente que serão utilizadas pelo programa.
+Certifique-se de ter o Docker instalado em sua máquina. Se você ainda não o possui, pode baixá-lo e instalá-lo a partir do [site oficial do Docker](docker.com).
+
+#### AWS Timestream
+
+Nossa aplicação está configurada para gravar e consumir em um banco [AWS Timestream](https://aws.amazon.com/pt/timestream/). Assim, será necessário acesso a uma conta aws com esse serviço configurado.
+
+Além de ativiar o serviço é preciso manualmente ciar um banco de dados chamado **iot-database** e duas tabelas: **data** e **status**.
+
+Dentro do painel [AWS IAM](https://aws.amazon.com/pt/iam/) será preciso gerar as chaves de acesso que seram usadas pelo programa.
+
+Após configurar as chaves de acesso, é necessário adiciona-las as variáveis de ambiente.
 
 ```
-export AWS_ACCESS_KEY_ID=<your_acess_key_id>
-export AWS_SECRET_ACCESS_KEY=<yout_secret_acess_key>
-export AWS_DEFAULT_REGION=<your_default_region>
+export AWS_ACCESS_KEY_ID=<your_acess_key_id> &&
+export AWS_SECRET_ACCESS_KEY=<yout_secret_acess_key> && 
+export AWS_DEFAULT_REGION=<your_default_region> 
 ```
 
 ### Installation
+
+OO Docker será encarregado de criar uma nova imagem das aplicações e implementar nossa infraestrutura.
 
 1. Clone the repo
    ```sh
@@ -111,13 +119,9 @@ export AWS_DEFAULT_REGION=<your_default_region>
    docker compose -f "docker-compose.yml" up -d --build 
    ```
 
-
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
-<!-- USAGE EXAMPLES -->
-## Usage
+## Testando a aplicação
 
 Para validar todo o fluxo em funcionamento é possivel acessar alguns endpoints que são expostos pela aplicação.
 
