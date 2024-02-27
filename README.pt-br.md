@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://skillicons.dev">
-    <img src="https://skillicons.dev/icons?i=aws,git,nodejs,rabbitmq,rust,docker" />
+    <img src="https://skillicons.dev/icons?i=rust,nodejs,docker,git,aws,rabbitmq" />
   </a>
 </p>
 
