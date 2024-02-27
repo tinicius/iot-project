@@ -57,8 +57,10 @@
 <figure>
     <img src="images/diagram.png"
          alt="Albuquerque, New Mexico">
-    <figcaption>Oberservação: Os items pontilhados representam ideias futuras</figcaption>
+    <figcaption>Observação: Os items pontilhados representam ideias futuras</figcaption>
 </figure>
+
+<br>
 
 Este projeto tem como objetivo principal simular uma infraestrutura de Internet das Coisas (IoT), partindo da geração de dados por meio de um "sensor" simulado. Este sensor é uma aplicação desenvolvida para gerar dados aleatórios, emulando o comportamento de um dispositivo real. Os dados gerados são então transportados através do protocolo MQTT para um serviço de mensageria, no nosso caso o RabbitMQ.
 
