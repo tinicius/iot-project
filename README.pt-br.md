@@ -1,14 +1,11 @@
 <a name="readme-top"></a>
 
-<!-- PROJECT SHIELDS -->
-
 <p align="center">
   <a href="https://skillicons.dev">
     <img src="https://skillicons.dev/icons?i=aws,git,nodejs,rabbitmq,rust,docker" />
   </a>
 </p>
 
-<!-- PROJECT LOGO -->
 <br />
 <div align="center">
   
@@ -44,15 +41,6 @@
       </ul>
     </li>
     <li>
-      <a href="#tech">Tecnologias Utilizadas</a>
-      <ul>
-        <li><a href="#mqtt">MQTT</a></li>
-        <li><a href="#rabbitmq">RabbitMQ</a></li>
-        <li><a href="#timeseries">Timeseries (AWS Timestream)</a></li>
-        <li><a href="#grpc">gRPC</a></li>
-      </ul>
-    </li>
-    <li>
       <a href="#progress">Melhorias Futuras</a>
       <ul>
         <li><a href="#apihttp">API HTTP</a></li>
@@ -65,6 +53,8 @@
   </ol>
 
 ## Sobre o Projeto
+
+![](images/diagram.png)
 
 Este projeto tem como objetivo principal simular uma infraestrutura de Internet das Coisas (IoT), partindo da geração de dados por meio de um "sensor" simulado. Este sensor é uma aplicação desenvolvida para gerar dados aleatórios, emulando o comportamento de um dispositivo real. Os dados gerados são então transportados através do protocolo MQTT para um serviço de mensageria, no nosso caso o RabbitMQ.
 
@@ -170,6 +160,8 @@ Cada instância desta aplicação representa um único sensor. Ao iniciar, a apl
 
 Um aspecto crucial dos dados da IoT é registrar não apenas a amplitude de uma medição, mas também o momento em que esses dados foram gerados. Portanto, em todos os dados enviados por nosso simulador, incluímos informações sobre o momento da geração desses dados.
 
+Para evitar dados redundancias e diminuir o tamanho das mensagens enviadas pelo MQTT as informações que estão presentes no tópico não são adicionadas ao payload da mensagem.
+
 Nossa aplicação irá simular três tipos de dados:
 
 #### Serviços
@@ -181,18 +173,67 @@ Para temperatura, enviaremos valores aleatórios entre 10 e 100.
 
 Para umidade, enviaremos valores aleatórios percentuais entre 0 e 1.
 
+```
+Temperatura | Humidade
+Tópico MQTT: IotProject/services/device/<0 | 1>
+
+{
+  value: number,
+  time: number
+}
+```
+
 #### Status do sensor
 Também simularemos dados que representam a saúde e o estado atual de um dispositivo. Para isso, enviaremos duas informações: a tensão da bateria e a intensidade de um sinal genérico. Esse sinal, em um dispositivo real, poderia representar informações da rede de internet, ethernet, bluetooth, entre outros.
+
+Os dados serão publicados no tópico MQTT IotProject/status/device.
 
 A tensão da bateria será um valor aleatório entre 0 e 5.
 
 A intensidade do sinal será um valor aleatório entre 0 e 100.
 
+```
+Status
+Tópico MQTT: IotProject/status/device/<0 | 1>
+
+{
+  batteryVoltage: number,
+  signal: number,
+  time: number
+}
+```
+
 ### Bridge (Rust)
 
-Caracteristicas
-Tecnologias
-Observacoes
+Este programa em Rust tem como objetivo estabelecer a conexão entre o MQTT e nossos serviços de mensageria. Sua função principal é escutar as atualizações do MQTT e enviar os dados para o RabbitMQ.
+
+É crucial utilizar um serviço de mensageria para garantir a consistência dos dados. O RabbitMQ desempenha esse papel armazenando os dados recebidos em diferentes filas. Esses dados são retidos até que o serviço receba a confirmação de que foram consumidos e processados corretamente.
+
+Além disso, este serviço desempenha a função de transformar a estrutura dos dados, combinando as informações do payload com as informações recebidas. Essa transformação permite que os dados circulem de forma mais completa pelas camadas mais altas da aplicação.
+
+```
+Temperatura | Humidade
+{
+  time: u64,
+  device: String,
+  value: f32, 
+  type: String,
+}
+```
+
+```
+Status
+{
+  time: u64,
+  device: String,
+  batteryVoltage: f32,
+  signal: f32,
+}
+``` 
+
+Configuramos o RabbitMQ com um exchange principal chamada **IOT_PROJECT**. Essa exchange recebe todos os dados e os distribui em três filas: **TEMP**, **HUMIDITY** e **STATUS**.
+
+
 
 ### Historian (Rust)
 

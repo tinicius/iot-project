@@ -108,9 +108,6 @@ export AWS_DEFAULT_REGION=<your_default_region>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
-<!-- USAGE EXAMPLES -->
 ## Usage
 
 Para validar todo o fluxo em funcionamento é possivel acessar alguns endpoints que são expostos pela aplicação.
