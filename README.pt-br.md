@@ -29,18 +29,18 @@
     <li>
       <a href="#getting started">Getting started</a>
       <ul>
-        <li><a href="#prerequisites">Pré-requisitos</a></li>
-        <li><a href="#installation">Instalação</a></li>
+        <li><a href="#pré-requisitos">Pré-requisitos</a></li>
+        <li><a href="#instalação">Instalação</a></li>
         <li><a href="#testando a aplicação">Testando a aplicação</a></li>
       </ul>
     </li>
     <li>
-      <a href="#services">Services Desenvolvidos</a>
+      <a href="#serviços desenvolvidos">Serviços Desenvolvidos</a>
       <ul>
-        <li><a href="#device-simulator">Device Simulator (NodeJs)</a></li>
-        <li><a href="#consumer">Consumer (Rust)</a></li>
-        <li><a href="#historian">Historian (Rust)</a></li>
-        <li><a href="#api">Api (Rust)</a></li>
+        <li><a href="#sensor simulator (nodejs)">Device Simulator (NodeJs)</a></li>
+        <li><a href="#bridge (rust)">Bridge (Rust)</a></li>
+        <li><a href="#historian (rust)">Historian (Rust)</a></li>
+        <li><a href="#api (rust)">Api (Rust)</a></li>
       </ul>
     </li>
     <li>
@@ -84,7 +84,7 @@ A nossa aplicação é distribuída através de contêineres Docker, proporciona
 
 Cada pasta dentro do projeto representa um serviço distinto, cada um desenvolvido independentemente e contendo o seu próprio Dockerfile. Para integrar e executar o projeto como um todo, utilizamos o Docker Compose. Este arquivo centralizado inclui as imagens de todos os serviços necessários para o funcionamento da aplicação.
 
-### Prerequisites
+### Pré-requisitos
 
 #### Docker
 
@@ -106,9 +106,9 @@ export AWS_SECRET_ACCESS_KEY=<yout_secret_acess_key> &&
 export AWS_DEFAULT_REGION=<your_default_region> 
 ```
 
-### Installation
+### Instalação
 
-OO Docker será encarregado de criar uma nova imagem das aplicações e implementar nossa infraestrutura.
+O Docker será encarregado de criar uma nova imagem das aplicações e implementar nossa infraestrutura.
 
 1. Clone the repo
    ```sh
@@ -154,6 +154,58 @@ PASSWORD=guest
 Para acessar o api você irá precisar do arquivo [server.proto](https://github.com/tinicius/iot-project/blob/9d1da11972804a3c261826e70fd79679c12f528d/api/protos/server.proto)
 
 O servidor está disponivel na rota *0.0.0.0:50051*
+
+## Services Desenvolvidos
+
+Vamos fazer uma pequena explicação de cada serviço desenvolvido falando sobre as caracteristicas de cada um, tecnologias utilizadas e observações importantes em cada cenário.
+
+### Sensor Simulator (Node.js)
+Esta aplicação serve como a base de nossa infraestrutura, simulando como dados reais gerados por diferentes dispositivos entram no ambiente da IoT. Para isso, simulamos a geração de dados aleatórios e os inserimos em nosso sistema, publicando-os utilizando o protocolo MQTT.
+
+Desenvolvemos este serviço utilizando Node.js, com suporte a TypeScript. Essas tecnologias permitem um desenvolvimento rápido, aproveitando as bibliotecas comuns disponíveis. A linguagem JavaScript oferece funcionalidades úteis para nossa aplicação, como o método setInterval(), que possibilita a simulação do envio de mensagens em intervalos determinados.
+
+O protocolo MQTT desempenha um papel fundamental no transporte de dados, permitindo a transmissão e recebimento de grandes volumes de dados com menor latência em comparação com outros protocolos. É uma maneira eficaz de enviar dados do mundo real para a internet, onde podem ser consumidos por outros serviços locais ou em nuvem.
+
+Cada instância desta aplicação representa um único sensor. Ao iniciar, a aplicação gera um número aleatório que serve como identificador do sensor que está sendo simulado. Isso nos permite criar um projeto mais abrangente, lidando com diferentes tipos de dados enviados por diferentes dispositivos.
+
+Um aspecto crucial dos dados da IoT é registrar não apenas a amplitude de uma medição, mas também o momento em que esses dados foram gerados. Portanto, em todos os dados enviados por nosso simulador, incluímos informações sobre o momento da geração desses dados.
+
+Nossa aplicação irá simular três tipos de dados:
+
+#### Serviços
+Estes dados representam as medições que nosso sensor poderia realizar. Neste exemplo, implementaremos dois tipos: [0] Temperatura, [1] Umidade.
+
+Os dados serão publicados no tópico MQTT IotProject/services/device/service_type.
+
+Para temperatura, enviaremos valores aleatórios entre 10 e 100.
+
+Para umidade, enviaremos valores aleatórios percentuais entre 0 e 1.
+
+#### Status do sensor
+Também simularemos dados que representam a saúde e o estado atual de um dispositivo. Para isso, enviaremos duas informações: a tensão da bateria e a intensidade de um sinal genérico. Esse sinal, em um dispositivo real, poderia representar informações da rede de internet, ethernet, bluetooth, entre outros.
+
+A tensão da bateria será um valor aleatório entre 0 e 5.
+
+A intensidade do sinal será um valor aleatório entre 0 e 100.
+
+### Bridge (Rust)
+
+Caracteristicas
+Tecnologias
+Observacoes
+
+### Historian (Rust)
+
+Caracteristicas
+Tecnologias
+Observacoes
+
+### Api (Rust)
+
+Caracteristicas
+Tecnologias
+Observacoes
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
