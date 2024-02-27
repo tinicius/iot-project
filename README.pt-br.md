@@ -155,7 +155,7 @@ Para acessar o api você irá precisar do arquivo [server.proto](https://github.
 
 O servidor está disponivel na rota *0.0.0.0:50051*
 
-## Services Desenvolvidos
+## Serviços Desenvolvidos
 
 Vamos fazer uma pequena explicação de cada serviço desenvolvido falando sobre as caracteristicas de cada um, tecnologias utilizadas e observações importantes em cada cenário.
 
